@@ -1,6 +1,6 @@
 {
   "name": "receipt-printer",
-  "version": "1.0.0+codex.20260831170129",
+  "version": "1.0.0+codex.20260831192101",
   "description": "Print markdown receipts through the print-only felt.engineering MCP server.",
   "author": {
     "name": "Felt Engineering",
@@ -18,7 +18,7 @@
   "interface": {
     "displayName": "Receipt Printer",
     "shortDescription": "Send markdown receipts to a physical printer.",
-    "longDescription": "Creates print jobs on the Felt Engineering receipt printer through a Cloudflare Access-protected, print-only MCP connection.",
+    "longDescription": "Creates print jobs through a local, Keychain-backed, print-only MCP connection. Each Mac uses its own revocable Agent key.",
     "developerName": "Felt Engineering",
     "category": "Productivity",
     "capabilities": [

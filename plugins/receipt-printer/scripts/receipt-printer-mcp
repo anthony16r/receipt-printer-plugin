@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Local MCP bridge for the Felt Engineering receipt printer. The Agent key is
+# read from macOS Keychain and sent only as an Authorization header to the
+# fixed, print-only public endpoint.
+
+set -u
+
+KEYCHAIN_SERVICE="engineering.felt.receipt-printer.agent-key"
+MCP_ENDPOINT="https://felt.engineering/api/mcp"
+
+if [[ "${RECEIPT_PRINTER_TEST_MODE:-}" == "1" ]]; then
+  # Tests may use a local endpoint, but test mode never reads the Keychain.
+  agent_key="${RECEIPT_PRINTER_TEST_AGENT_KEY:-}"
+  mcp_endpoint="${RECEIPT_PRINTER_TEST_MCP_URL:-}"
+else
+  if [[ "$(/usr/bin/uname -s)" != "Darwin" ]]; then
+    /usr/bin/printf '%s\n' \
+      "Receipt Printer currently requires macOS Keychain. See the plugin README for setup." >&2
+    exit 78
+  fi
+  keychain_account="$(/usr/bin/id -un)"
+  if ! agent_key="$(/usr/bin/security find-generic-password \
+      -a "$keychain_account" -s "$KEYCHAIN_SERVICE" -w 2>/dev/null)"; then
+    /usr/bin/printf '%s\n' \
+      "Receipt Printer has no Agent key in macOS Keychain." \
+      "Run the one-time setup command in the plugin README, then restart Codex." >&2
+    exit 78
+  fi
+  mcp_endpoint="$MCP_ENDPOINT"
+fi
+
+if [[ ! "$agent_key" =~ ^apk_[0-9a-f]{48}$ ]]; then
+  /usr/bin/printf '%s\n' \
+    "Receipt Printer found an invalid credential. Store an Agent key (apk_…), not a Friend or printer key." >&2
+  exit 78
+fi
+if [[ -z "$mcp_endpoint" ]]; then
+  /usr/bin/printf '%s\n' "Receipt Printer MCP endpoint is missing." >&2
+  exit 78
+fi
+
+while IFS= read -r message; do
+  [[ -z "$message" ]] && continue
+  if ! response="$(
+    /usr/bin/printf '%s' "$message" |
+      /usr/bin/curl --silent --show-error --fail \
+        --request POST \
+        --header 'Content-Type: application/json' \
+        --header 'Accept: application/json, text/event-stream' \
+        --header @/dev/fd/3 \
+        --data-binary @- \
+        "$mcp_endpoint" \
+        3<<<"Authorization: Bearer ${agent_key}"
+  )"; then
+    /usr/bin/printf '%s\n' \
+      "Receipt Printer could not authenticate or reach the print service." \
+      "If this Agent key was revoked, run the setup command again with a new key." >&2
+    exit 69
+  fi
+  if [[ -n "$response" ]]; then
+    if ! compact_response="$(/usr/bin/printf '%s' "$response" |
+        /usr/bin/plutil -convert json -o - -- - 2>/dev/null)"; then
+      /usr/bin/printf '%s\n' "Receipt Printer received an invalid MCP response." >&2
+      exit 76
+    fi
+    # MCP stdio requires exactly one JSON message per line. The Worker emits
+    # human-readable JSON over HTTP, so compact it before writing to stdout.
+    /usr/bin/printf '%s\n' "$compact_response"
+  fi
+done

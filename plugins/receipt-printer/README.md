@@ -1,61 +1,68 @@
 # Receipt Printer plugin
 
-This plugin gives ChatGPT and Codex two print-only MCP tools:
+This macOS Codex plugin provides two print-only MCP tools:
 
 - `print_receipt` creates a physical receipt-printer job.
 - `get_receipt_capabilities` returns the current receipt Markdown dialect and layout limits.
 
-The plugin connects to `https://mcp.felt.engineering/api/mcp` using Cloudflare Access
-Managed OAuth. Installation never asks for or stores a printer key. The OAuth identity
-can create print jobs only; it cannot read job history, saved receipts, personal
-templates, print keys, printer settings, or other administrator data.
+Each Codex installation uses its own revocable `apk_…` Agent key. The plugin keeps that
+key in macOS Keychain and sends it only to `https://felt.engineering/api/mcp` in an
+authorization header. There is no browser login, OAuth grant, refresh token, or key in
+Codex configuration.
 
-## Install from the source marketplace
+An Agent key can create print jobs only. It cannot read job history, saved receipts,
+personal templates, print keys, printer settings, or other administrator data.
 
-The plugin is published in a dedicated public repository. No access to the private
-`felt.engineering` source repository is required:
+## First-time setup on a Mac
+
+1. Sign in to `https://admin.felt.engineering/print/`, open **Agent & friend keys**, and
+   create an **Agent** key labeled for this installation, such as `Work Mac Codex`.
+   Copy the `apk_…` value shown once.
+2. Run the setup helper directly from the public plugin repository:
+
+   ```sh
+   /bin/bash <(/usr/bin/curl -fsSL https://raw.githubusercontent.com/anthony16r/receipt-printer-plugin/main/plugins/receipt-printer/scripts/setup-agent-key.sh)
+   ```
+
+   Paste the Agent key at the secure Keychain prompt. The helper verifies the key by
+   listing the two MCP tools; it does not create a print job.
+3. Install the public marketplace and plugin:
+
+   ```sh
+   codex plugin marketplace add anthony16r/receipt-printer-plugin --ref main
+   codex plugin add receipt-printer@felt-engineering
+   ```
+
+4. Restart Codex and begin a new task. A request such as “Print me a weather brief for
+   today” can then trigger the receipt-printing skill and tool.
+
+If macOS asks whether `/usr/bin/security` may access the item, choose **Always Allow**.
+This grants access to Apple's Keychain utility, not to every application.
+
+## Updating an existing installation
 
 ```sh
-codex plugin marketplace add anthony16r/receipt-printer-plugin --ref main
+codex plugin marketplace upgrade felt-engineering
 codex plugin add receipt-printer@felt-engineering
 ```
 
-Restart or reload ChatGPT/Codex if prompted, then connect the Receipt Printer MCP
-server. A browser window opens for the owner's Cloudflare Access login. Each computer
-and ChatGPT account receives its own revocable OAuth grant; no secret is copied between
-machines.
-
-ChatGPT on the web can also connect `https://mcp.felt.engineering/api/mcp` directly as
-a custom MCP plugin in developer mode. Codex can connect the same endpoint without
-installing the bundled receipt-formatting skill:
+Run the setup helper again only when installing on a new Mac, replacing a revoked key,
+or changing which Agent key that Mac uses. Check whether a valid-looking key is already
+stored without revealing it:
 
 ```sh
-codex mcp add receipt-printer --url https://mcp.felt.engineering/api/mcp
-codex mcp login receipt-printer
+/bin/bash <(/usr/bin/curl -fsSL https://raw.githubusercontent.com/anthony16r/receipt-printer-plugin/main/plugins/receipt-printer/scripts/setup-agent-key.sh) --status
 ```
 
-A managed work account may require its workspace administrator to allow custom plugins.
+Older Cloudflare OAuth credentials are not used by this version. The owner can revoke a
+machine immediately from **Agent & friend keys** in the admin page; create a replacement
+key and rerun setup to restore it.
 
-## Owner deployment
+## Requirements and scope
 
-1. In Cloudflare Zero Trust, create a self-hosted Access application for
-   `mcp.felt.engineering`. Allow only the personal and work email addresses that should
-   be able to create print jobs.
-2. Under the application's Advanced settings, enable Managed OAuth and Dynamic Client
-   Registration. Allow localhost and loopback redirect URIs for Codex. Add the exact
-   HTTPS redirect URI shown by ChatGPT when connecting the custom MCP plugin.
-3. Use a 5–15 minute access-token lifetime and a one- or two-week grant session.
-4. Copy the application's Access audience tag. From the site repository, run
-   `npx wrangler secret put MCP_POLICY_AUD` and paste the tag.
-5. Run `npx wrangler secret put MCP_EMAILS` and enter the allowed email addresses as a
-   comma-separated value. This is deliberately separate from `ADMIN_EMAIL`: an allowed
-   work login receives print-only access, never administrator access.
-6. Deploy the Worker route for `mcp.felt.engineering`, then connect the plugin and finish
-   the browser login. The Worker fails closed if the audience or email secret is absent.
+- macOS, with `/usr/bin/security` and `/usr/bin/curl` (both included with macOS).
+- Local Codex clients only. Browser-hosted ChatGPT/Codex is intentionally unsupported.
+- A managed work account may require its workspace administrator to permit local plugins.
 
-## Non-interactive agents
-
-Automations that cannot complete a browser login should not use the plugin's OAuth
-connection. Give each automation its own revocable `apk_…` Agent key and use
-`https://felt.engineering/api/mcp` with `Authorization: Bearer <agent-key>`, or call the
-print REST API. Agent keys are also print-only.
+`PRINTER_KEY` is unrelated. It belongs only in the Epson printer's polling URL and must
+never be entered into this plugin.

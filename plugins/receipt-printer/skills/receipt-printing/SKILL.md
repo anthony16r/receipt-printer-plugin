@@ -20,4 +20,4 @@ Use the `receipt-printer` MCP tools for this workflow.
 - Printing is a physical side effect. If the user is only drafting, previewing, or asking how something would look, do not call `print_receipt`.
 - Never print a second copy merely because a response was slow. Retry only with the original idempotency key.
 - This plugin is print-only. Do not seek job history, saved receipts, personal templates, print keys, printer settings, or administrator data.
-- Never request, display, store, or place printer credentials in receipt content, prompts, URLs, or files.
+- The local connector obtains its Agent key from macOS Keychain. Never request, display, or place credentials in receipt content, prompts, URLs, or workspace files.
