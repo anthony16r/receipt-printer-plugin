@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "receipt-printer": {
+      "type": "http",
+      "url": "https://mcp.felt.engineering/api/mcp",
+      "auth": "oauth"
+    }
+  }
+}

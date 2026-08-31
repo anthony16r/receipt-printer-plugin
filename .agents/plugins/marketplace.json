@@ -1,0 +1,20 @@
+{
+  "name": "felt-engineering",
+  "interface": {
+    "displayName": "Felt Engineering"
+  },
+  "plugins": [
+    {
+      "name": "receipt-printer",
+      "source": {
+        "source": "local",
+        "path": "./plugins/receipt-printer"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

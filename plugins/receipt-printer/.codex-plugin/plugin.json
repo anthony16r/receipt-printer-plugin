@@ -1,0 +1,36 @@
+{
+  "name": "receipt-printer",
+  "version": "1.0.0+codex.20260831170129",
+  "description": "Print markdown receipts through the print-only felt.engineering MCP server.",
+  "author": {
+    "name": "Felt Engineering",
+    "url": "https://felt.engineering"
+  },
+  "homepage": "https://felt.engineering/print/skill.md",
+  "repository": "https://github.com/anthony16r/receipt-printer-plugin",
+  "keywords": [
+    "receipt",
+    "printer",
+    "thermal-printer",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Receipt Printer",
+    "shortDescription": "Send markdown receipts to a physical printer.",
+    "longDescription": "Creates print jobs on the Felt Engineering receipt printer through a Cloudflare Access-protected, print-only MCP connection.",
+    "developerName": "Felt Engineering",
+    "category": "Productivity",
+    "capabilities": [
+      "Create print jobs",
+      "Receipt formatting guidance"
+    ],
+    "websiteURL": "https://felt.engineering/print/skill.md",
+    "brandColor": "#F48120",
+    "defaultPrompt": [
+      "Print this as a well-formatted receipt.",
+      "Turn this checklist into a receipt and print it."
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}
